@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora DBCA Agronómica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased p-6">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h1 class="text-2xl font-semibold text-gray-900">Evaluación de micorrizas en Maíz</h1>
+            <p class="text-gray-500 text-sm mt-1">Generador de parcelas y cálculo de siembra</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+                
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-medium mb-4">Parámetros DBCA</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Tratamientos (separados por coma)</label>
+                            <input type="text" id="inputTratamientos" value="T1, T2, Consorcio, Testigo" 
+                                   class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Número de Bloques</label>
+                            <input type="number" id="inputBloques" value="4" min="2" max="10"
+                                   class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
+                        <button id="btnGenerar" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm">
+                            Generar Diseño
+                        </button>
+                        
+                        <button id="btnExportar" 
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm mt-2 hidden">
+                            Descargar Excel
+                        </button>
+
+                        <button id="btnExportarPDF" class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm mt-2 hidden">
+                            Descargar Reporte PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-medium mb-4">Calculadora de Siembra</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Área Total (m²)</label>
+                                <input type="number" id="inputAreaTotal" value="842.48" step="0.01"
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Plantas / Parcela</label>
+                                <input type="number" id="inputPlantas" value="12" 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Dist. Surcos (m)</label>
+                                <input type="number" id="inputDistSurcos" value="0.8" step="0.1"
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Dist. Plantas (m)</label>
+                                <input type="number" id="inputDistPlantas" value="0.2" step="0.1"
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
+                            </div>
+                        </div>
+                        <button id="btnCalcular" 
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm mt-2">
+                            Calcular Dimensiones
+                        </button>
+                        
+                        <div id="resultadosCalculadora" class="hidden mt-4 p-4 bg-green-50 rounded-lg border border-green-100 text-sm text-green-800 space-y-2">
+                            <p><strong>Área por parcela:</strong> <span id="resArea">0</span> m²</p>
+                            <p><strong>Largo x Ancho:</strong> <span id="resDimensiones">0 x 0</span> m</p>
+                            <p><strong>Plantas Útiles (Sin borde):</strong> <span id="resUtiles">0</span></p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
+                <h2 class="text-lg font-medium mb-4">Ubicación y Croquis del Terreno</h2>
+                
+                <div id="mapa" class="h-64 w-full rounded-xl mb-6 z-0 border border-gray-200 overflow-hidden"></div>
+                
+                <h3 class="text-md font-medium text-gray-700 mb-3 hidden" id="tituloCroquis">Distribución de Parcelas</h3>
+                <div id="croquisVisual" class="grid gap-4 mb-4">
+                    </div>
+
+                <details class="bg-gray-800 rounded-xl mt-4">
+                    <summary class="text-gray-300 text-xs p-3 cursor-pointer">Ver datos crudos (JSON)</summary>
+                    <pre id="consola" class="text-green-400 text-xs font-mono p-3 pt-0 overflow-x-auto"></pre>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
